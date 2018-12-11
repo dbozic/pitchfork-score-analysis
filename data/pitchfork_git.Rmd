@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: rmarkdown::github_document
+---
+
+```{r}
+#Importing SQLite library
+library("RSQLite")
+```
+
+```{r}
+# Connecting to the Pitchfork database
+sqlite <- dbDriver("SQLite")
+pitchforkdb <- dbConnect(sqlite, "database.sqlite")
+```
+
+```{r}
+# Listing all the tables in the Pitchfork database
+dbListTables(pitchforkdb)
+```
+
+```{r}
+# Viewing the artists table
+artists <- dbSendQuery(pitchforkdb, "SELECT * FROM artists LIMIT 10")
+dbFetch(artists)
+```
+
+```{r}
+# Viewing the content table
+content <- dbSendQuery(pitchforkdb, "SELECT * FROM content LIMIT 5")
+dbFetch(content)
+```
+
+The content table is qualitative with the actual reviews embedded, so we won't use that one for exploration. 
+
+```{r}
+# Viewing the genres table
+genres <- dbSendQuery(pitchforkdb, "SELECT * FROM genres LIMIT 10")
+dbFetch(genres)
+```
+
+```{r}
+# Viewing the labels table
+labels <- dbSendQuery(pitchforkdb, "SELECT * FROM labels LIMIT 10")
+dbFetch(labels)
+```
+
+```{r}
+# Viewing the reviews table
+reviews <- dbSendQuery(pitchforkdb, "SELECT * FROM reviews LIMIT 10")
+dbFetch(reviews)
+```
+
+```{r}
+# Viewing the years table
+years <- dbSendQuery(pitchforkdb, "SELECT * FROM years LIMIT 10")
+dbFetch(years)
+```
+
+We will join tables "labels", "genre", and "year" onto the "reviews: table. The "content" table is unnecessary, and information from the "artists" table is already included in the "reviews" table.
+
+```{r}
+# Joining the table
+joined <- dbSendQuery(pitchforkdb, "SELECT *
+                                    FROM reviews r
+                                    LEFT JOIN labels l
+                                    ON r.reviewid = l.reviewid
+                                    LEFT JOIN genres g
+                                    ON r.reviewid = g.reviewid
+                                    LEFT JOIN years y
+                                    ON r.reviewid = y.reviewid")
+df <- dbFetch(joined)
+df
+```
+
+Let's get names of all columns, so that we can drop some of them. 
+
+```{r}
+#Column names preview
+colnames(df)
+```
+
+We will delete the ones that we don't need.
+
+```{r}
+# Deleting columns
+df$url <- NULL
+df$author <- NULL
+df$pub_weekday <- NULL
+df$reviewid..14 <- NULL
+df$reviewid..16 <- NULL
+df$reviewid..18 <- NULL
+```
+
+The final dataframe looks like:
+
+```{r}
+# Checking the final dataframe
+head(df)
+```
+
+At this point, I'd like to save the dataframe as csv. 
+
+```{r}
+write.csv(df, file = "pitchfork_scores.csv")
+```
+
